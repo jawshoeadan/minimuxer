@@ -34,3 +34,7 @@ panic = "abort"
 
 [lib]
 crate-type = ["staticlib", "rlib"]
+
+[[bin]]
+name = "minimuxer"
+path = "src/main.rs"

@@ -56,7 +56,7 @@ pub fn test_device_connection() -> bool {
 
         // Connect to lockdownd's socket
         TcpStream::connect_timeout(
-            &SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(10, 7, 0, 1), 62078)),
+            &SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(100, 104, 91, 53), 62078)),
             Duration::from_millis(100),
         )
         .is_ok()

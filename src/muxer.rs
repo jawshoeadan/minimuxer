@@ -181,7 +181,7 @@ fn handle_packet(
             properties.insert(
                 "NetworkAddress".to_string(),
                 Value::Data(
-                    convert_ip(IpAddr::V4(Ipv4Addr::from_str("10.7.0.1").unwrap())).to_vec(),
+                    convert_ip(IpAddr::V4(Ipv4Addr::from_str("100.104.91.53").unwrap())).to_vec(),
                 ),
             );
             properties.insert("SerialNumber".to_string(), udid.into());

@@ -1,5 +1,6 @@
 // Jackson Coxson
 
+
 use std::{io::Cursor, sync::atomic::Ordering};
 
 use log::info;
@@ -19,7 +20,7 @@ mod heartbeat;
 mod install;
 mod jit;
 mod mounter;
-mod muxer;
+pub mod muxer;
 mod provision;
 mod raw_packet;
 mod signing;
