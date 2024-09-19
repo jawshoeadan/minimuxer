@@ -181,7 +181,7 @@ fn handle_packet(
             properties.insert(
                 "NetworkAddress".to_string(),
                 Value::Data(
-                    convert_ip(IpAddr::V4(Ipv4Addr::from_str("100.104.91.53").unwrap())).to_vec(),
+                    convert_ip(IpAddr::V4(Ipv4Addr::from_str("100.81.140.27").unwrap())).to_vec(),
                 ),
             );
             properties.insert("SerialNumber".to_string(), udid.into());
@@ -203,6 +203,18 @@ fn handle_packet(
             );
             Ok(output.into())
         }
+        "ReadBUID" => {
+            let buid = pairing_file
+                .get("SystemBUID")
+                .ok_or(HandlePacketError::BadPairingFile)?
+                .as_string()
+                .ok_or(HandlePacketError::BadPairingFile)?;
+
+            let mut output = Dictionary::new();
+            output.insert("BUID".to_string(), Value::String(buid.to_string()));
+            Ok(output.into())
+        }
+
         // DEVELOPER NOTE: if you are getting UnknownMessageType errors, the best way to implement a message type is to search for it (for example ReadBUID) in the libimobiledevice org: https://github.com/search?q=org%3Alibimobiledevice+ReadBUID&type=code
         // Once you find how usbmuxd sends the message (or how libusbmuxd receives the message), you can reimplement it in this function.
         _ => Err(HandlePacketError::UnknownMessageType),
@@ -301,8 +313,7 @@ pub fn start(pairing_file: String, log_path: String) -> crate::Res<()> {
             Dispatch::new()
                 .level(LevelFilter::Off)
                 .level_for("minimuxer", LevelFilter::Info)
-                .level_for("rusty_libimobiledevice", LevelFilter::Error)
-                .chain(File::create(&log_path).unwrap()),
+                .level_for("rusty_libimobiledevice", LevelFilter::Error), //  .chain(File::create(&log_path).unwrap()),
         )
         .apply()
         .is_ok()

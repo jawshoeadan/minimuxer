@@ -1,11 +1,11 @@
 use std::env;
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 fn main() {
     // Set up command-line argument parsing
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() != 3 {
         eprintln!("Usage: {} <pairing_file_path> <log_file_path>", args[0]);
         std::process::exit(1);
