@@ -6,13 +6,17 @@ fn main() {
     // Set up command-line argument parsing
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 3 {
-        eprintln!("Usage: {} <pairing_file_path> <log_file_path>", args[0]);
+    if args.len() != 4 {
+        eprintln!(
+            "Usage: {} <pairing_file_path> <log_file_path> <ip_address>",
+            args[0]
+        );
         std::process::exit(1);
     }
 
     let pairing_file_path = &args[1];
     let log_file_path = &args[2];
+    let ip_address = &args[3];
 
     // Read the pairing file
     let pairing_file_contents = match fs::read_to_string(pairing_file_path) {
@@ -32,7 +36,11 @@ fn main() {
     }
 
     // Start minimuxer
-    match minimuxer::muxer::start(pairing_file_contents, log_file_path.to_string()) {
+    match minimuxer::muxer::start(
+        pairing_file_contents,
+        log_file_path.to_string(),
+        ip_address.to_string(),
+    ) {
         Ok(_) => println!("Minimuxer started successfully"),
         Err(e) => {
             eprintln!("Error starting minimuxer: {:?}", e);

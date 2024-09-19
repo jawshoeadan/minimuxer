@@ -4,12 +4,13 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddrV4, TcpListener};
 use std::str::FromStr;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 
 use log::{error, info, trace, warn};
 use plist::{Dictionary, Value};
 
 use crate::{heartbeat::start_beat, plist_to_bytes, raw_packet::RawPacket, Errors};
+static REMOTE_DEVICE_IP: AtomicPtr<Ipv4Addr> = AtomicPtr::new(std::ptr::null_mut());
 
 #[swift_bridge::bridge]
 mod ffi {
@@ -17,7 +18,11 @@ mod ffi {
     enum Errors {}
 
     extern "Rust" {
-        fn start(pairing_file: String, log_path: String) -> Result<(), Errors>;
+        fn start(
+            pairing_file: String,
+            log_path: String,
+            remote_device_ip: String,
+        ) -> Result<(), Errors>;
         fn target_minimuxer_address();
     }
 }
@@ -180,9 +185,7 @@ fn handle_packet(
             properties.insert("InterfaceIndex".to_string(), 69.into());
             properties.insert(
                 "NetworkAddress".to_string(),
-                Value::Data(
-                    convert_ip(IpAddr::V4(Ipv4Addr::from_str("100.81.140.27").unwrap())).to_vec(),
-                ),
+                Value::Data(convert_ip(IpAddr::V4(get_ip_address())).to_vec()),
             );
             properties.insert("SerialNumber".to_string(), udid.into());
 
@@ -271,7 +274,7 @@ pub static STARTED: AtomicBool = AtomicBool::new(true); // minimuxer won't start
 /// Starts the muxer and heartbeat client
 /// # Arguments
 /// Pairing file contents as a string and log path as a string
-pub fn start(pairing_file: String, log_path: String) -> crate::Res<()> {
+pub fn start(pairing_file: String, log_path: String, remote_device_ip: String) -> crate::Res<()> {
     use fern::Dispatch;
     use log::LevelFilter;
 
@@ -342,13 +345,30 @@ pub fn start(pairing_file: String, log_path: String) -> crate::Res<()> {
             return Err(Errors::PairingFile);
         }
     };
-
+    let ip_addr = match remote_device_ip.parse::<Ipv4Addr>() {
+        Ok(ip) => ip,
+        Err(e) => {
+            error!("Failed to parse IP address: {:?}", e);
+            return Err(Errors::InvalidRemoteIp);
+        }
+    };
+    let boxed_ip = Box::new(ip_addr);
+    REMOTE_DEVICE_IP.store(Box::into_raw(boxed_ip), Ordering::Relaxed);
     listen(pairing_file);
     start_beat();
 
     info!("minimuxer has started!");
     STARTED.store(true, Ordering::Relaxed);
     Ok(())
+}
+pub fn get_ip_address() -> Ipv4Addr {
+    let ptr = REMOTE_DEVICE_IP.load(Ordering::Relaxed);
+    if ptr.is_null() {
+        // Default IP if not set
+        Ipv4Addr::new(127, 0, 0, 1)
+    } else {
+        unsafe { *ptr }
+    }
 }
 
 /// Sets the current environment variable for libusbmuxd to localhost

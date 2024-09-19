@@ -1,6 +1,5 @@
 // Jackson Coxson
 
-
 use std::{io::Cursor, sync::atomic::Ordering};
 
 use log::info;
@@ -38,6 +37,7 @@ mod ffi {
         NoConnection,
         PairingFile,
 
+        InvalidRemoteIp,
         CreateDebug,
         CreateInstproxy,
 
@@ -62,7 +62,6 @@ mod ffi {
         CreateMisagent,
         ProfileInstall,
         ProfileRemove,
-
         /* signing */
         // AppleCodesign(String),
     }
