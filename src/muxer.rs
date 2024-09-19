@@ -5,12 +5,14 @@ use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddrV4, TcpListener};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
+use std::sync::Mutex;
 
 use log::{error, info, trace, warn};
 use plist::{Dictionary, Value};
 
 use crate::{heartbeat::start_beat, plist_to_bytes, raw_packet::RawPacket, Errors};
-static REMOTE_DEVICE_IP: AtomicPtr<Ipv4Addr> = AtomicPtr::new(std::ptr::null_mut());
+
+static REMOTE_DEVICE_IP: Mutex<Option<Ipv4Addr>> = Mutex::new(None);
 
 #[swift_bridge::bridge]
 mod ffi {
@@ -352,8 +354,14 @@ pub fn start(pairing_file: String, log_path: String, remote_device_ip: String) -
             return Err(Errors::InvalidRemoteIp);
         }
     };
-    let boxed_ip = Box::new(ip_addr);
-    REMOTE_DEVICE_IP.store(Box::into_raw(boxed_ip), Ordering::Relaxed);
+
+    if let Ok(mut remote_ip) = REMOTE_DEVICE_IP.lock() {
+        *remote_ip = Some(ip_addr);
+    } else {
+        error!("Failed to set remote device IP");
+        return Err(Errors::InvalidRemoteIp);
+    }
+
     listen(pairing_file);
     start_beat();
 
@@ -362,13 +370,10 @@ pub fn start(pairing_file: String, log_path: String, remote_device_ip: String) -
     Ok(())
 }
 pub fn get_ip_address() -> Ipv4Addr {
-    let ptr = REMOTE_DEVICE_IP.load(Ordering::Relaxed);
-    if ptr.is_null() {
-        // Default IP if not set
-        Ipv4Addr::new(127, 0, 0, 1)
-    } else {
-        unsafe { *ptr }
-    }
+    REMOTE_DEVICE_IP
+        .lock()
+        .map(|guard| guard.unwrap_or(Ipv4Addr::new(127, 0, 0, 1)))
+        .unwrap_or(Ipv4Addr::new(127, 0, 0, 1))
 }
 
 /// Sets the current environment variable for libusbmuxd to localhost
